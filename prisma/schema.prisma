@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model School {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  documents Document[]
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  title     String
+  content   Json?    // PostgreSQL supports Json type
+  grade     String?
+  subject   String?
+  chapter   String?
+  schoolId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  @@map("documents")
+}
