@@ -1,14 +1,16 @@
 "use client"
 
-import { ChevronLeft, Star, Zap } from "lucide-react"
+import { ChevronLeft, Star, Zap, Database } from "lucide-react"
 import { useState } from "react"
 
 interface SubHeaderProps {
   progress: number
   onMarkComplete: () => void
+  onToggleDatabaseTest?: () => void
+  showDatabaseTest?: boolean
 }
 
-export function SubHeader({ progress, onMarkComplete }: SubHeaderProps) {
+export function SubHeader({ progress, onMarkComplete, onToggleDatabaseTest, showDatabaseTest }: SubHeaderProps) {
   const [isStarred, setIsStarred] = useState(false)
 
   return (
@@ -53,6 +55,19 @@ export function SubHeader({ progress, onMarkComplete }: SubHeaderProps) {
 
         {/* Progress and actions */}
         <div className="flex items-center gap-4 shrink-0">
+          {onToggleDatabaseTest && (
+            <button
+              onClick={onToggleDatabaseTest}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                showDatabaseTest 
+                  ? 'bg-[#7c3aed] text-white' 
+                  : 'border border-[#7c3aed] text-[#7c3aed] hover:bg-[#7c3aed] hover:text-white'
+              }`}
+            >
+              <Database className="w-4 h-4" />
+              {showDatabaseTest ? 'Content' : 'Database'}
+            </button>
+          )}
           <div className="flex flex-col items-end gap-1">
             <span className="text-xs text-muted-foreground">Progress</span>
             <div className="flex items-center gap-2">

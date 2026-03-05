@@ -23,7 +23,7 @@ interface Message {
   id: string
   role: "user" | "assistant"
   content: string
-  timestamp: string
+  time: string
   reference?: string
   image?: string
 }
@@ -457,16 +457,17 @@ export function RightPanel({
         setError(null)
 
         const placeholderId = `${threadId}-ai-${Date.now()}`
-        const placeholderTimestamp = new Date().toLocaleTimeString([], {
-          hour: "2-digit",
+        const placeholderTime = new Date().toLocaleTimeString("en-US", {
+          hour: "numeric",
           minute: "2-digit",
+          hour12: true
         })
 
         const placeholderMsg: Message = {
           id: placeholderId,
           role: "assistant",
           content: "",
-          timestamp: placeholderTimestamp,
+          time: placeholderTime,
         }
 
         setThreads((prev) =>
@@ -583,9 +584,10 @@ export function RightPanel({
               id: `ai-${Date.now()}`,
               role: "assistant",
               content: finalContent,
-              timestamp: new Date().toLocaleTimeString("en-US", {
-                hour: "2-digit",
+              time: new Date().toLocaleTimeString("en-US", {
+                hour: "numeric",
                 minute: "2-digit",
+                hour12: true
               }),
             }
             
@@ -628,9 +630,10 @@ export function RightPanel({
 
   const handleSendMessage = useCallback(
     async (text: string) => {
-      const timestamp = new Date().toLocaleTimeString([], {
-        hour: "2-digit",
+      const time = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
         minute: "2-digit",
+        hour12: true
       })
 
       // Check if user typed "yes" for detailed explanation or more questions
@@ -666,7 +669,7 @@ export function RightPanel({
               id: Date.now().toString(),
               role: "user",
               content: detailedRequest,
-              timestamp,
+              time,
             }
 
             setThreads((prev) =>
@@ -676,6 +679,9 @@ export function RightPanel({
                   : t
               )
             )
+
+            // Save the detailed request message to database
+            await saveMessage(activeThreadId, 'user', detailedRequest, currentChapterId)
 
             try {
               await sendToAI(
@@ -741,7 +747,7 @@ export function RightPanel({
             id: Date.now().toString(),
             role: "user",
             content: text,
-            timestamp,
+            time,
             reference: contextReference || undefined,
           }
 
@@ -772,7 +778,7 @@ export function RightPanel({
           id: Date.now().toString(),
           role: "user",
           content: text,
-          timestamp,
+          time,
           reference: contextReference || undefined,
         }
         console.log("Adding user message to existing thread:", userMsg)

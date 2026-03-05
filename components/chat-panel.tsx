@@ -8,7 +8,7 @@ interface Message {
   id: string
   role: "user" | "assistant"
   content: string
-  timestamp: string
+  time: string
   reference?: string
   image?: string
 }
@@ -85,7 +85,7 @@ export function ChatPanel({
                   {msg.content}
                 </div>
                 <span className="text-[10px] text-muted-foreground mt-0.5">
-                  {msg.timestamp}
+                  {msg.time}
                 </span>
               </div>
             ) : (
@@ -121,7 +121,7 @@ export function ChatPanel({
                   )}
                 </div>
                 <span className="text-[10px] text-muted-foreground mt-0.5">
-                  {msg.timestamp}
+                  {msg.time}
                 </span>
               </div>
             )}

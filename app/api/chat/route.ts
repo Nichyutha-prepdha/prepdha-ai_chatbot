@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getAllBooks, getTopicsByBook, getPagesByTopic, getDocumentChunksByPage } from "@/lib/db"
 
 type ChatRole = "system" | "user" | "assistant"
 
@@ -21,6 +22,44 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const messages = Array.isArray(body?.messages) ? (body.messages as ChatMessage[]) : []
     const context = typeof body?.context === "string" ? body.context : null
+    const bookId = typeof body?.bookId === "number" ? body.bookId : null
+    const topicId = typeof body?.topicId === "number" ? body.topicId : null
+    const pageId = typeof body?.pageId === "number" ? body.pageId : null
+
+    // Fetch content from Neon database if IDs are provided
+    let databaseContext = ""
+    if (bookId || topicId || pageId) {
+      try {
+        if (pageId) {
+          // Get specific page content
+          const chunks = await getDocumentChunksByPage(pageId)
+          databaseContext = (chunks as any[]).map((chunk: any) => chunk.content).join("\n\n")
+        } else if (topicId) {
+          // Get all pages in topic
+          const pages = await getPagesByTopic(topicId)
+          const allChunks = []
+          for (const page of (pages as any[])) {
+            const chunks = await getDocumentChunksByPage(page.id)
+            allChunks.push(...(chunks as any[]))
+          }
+          databaseContext = allChunks.map((chunk: any) => chunk.content).join("\n\n")
+        } else if (bookId) {
+          // Get all topics and pages in book
+          const topics = await getTopicsByBook(bookId)
+          const allChunks = []
+          for (const topic of (topics as any[])) {
+            const pages = await getPagesByTopic(topic.id)
+            for (const page of (pages as any[])) {
+              const chunks = await getDocumentChunksByPage(page.id)
+              allChunks.push(...(chunks as any[]))
+            }
+          }
+          databaseContext = allChunks.map((chunk: any) => chunk.content).join("\n\n")
+        }
+      } catch (error) {
+        console.error("Error fetching database content:", error)
+      }
+    }
 
     const MAX_CHAT_MESSAGES =
       Number(process.env.MAX_CHAT_MESSAGES ?? "10") || 10
@@ -34,13 +73,21 @@ export async function POST(req: NextRequest) {
       {
         role: "system",
         content:
-          "You are a helpful study assistant for middle-school history students. Use provided chapter context when available. Keep answers clear, structured, and easy to understand. For 'explain' or 'explain like I am five' requests, give slow, step-by-step explanations with simple analogies and short paragraphs, not just bullet lists. Use bullets only when the user explicitly asks to list or summarize.\n\nFormatting rules:\n1) For SUMMARIZE requests: write flowing prose paragraphs WITHOUT any numbering or bullet points.\n2) For QUESTIONS / quiz / practice / check-understanding requests: output numbered questions (1., 2., 3., …), each on its own line.\n3) For KEY / MAIN / IMPORTANT points requests: output each point on its own line as a bullet or number.\n4) When the user provides selected text or specific context and asks for questions or key points, base everything ONLY on that text, not outside knowledge.",
+          "You are a helpful study assistant for middle-school students. Use provided chapter context when available. Keep answers clear, structured, and easy to understand. For 'explain' or 'explain like I am five' requests, give slow, step-by-step explanations with simple analogies and short paragraphs, not just bullet lists. Use bullets only when the user explicitly asks to list or summarize.\n\nFormatting rules:\n1) For SUMMARIZE requests: write flowing prose paragraphs WITHOUT any numbering or bullet points.\n2) For QUESTIONS / quiz / practice / check-understanding requests: output numbered questions (1., 2., 3., …), each on its own line.\n3) For KEY / MAIN / IMPORTANT points requests: output each point on its own line as a bullet or number.\n4) When the user provides selected text or specific context and asks for questions or key points, base everything ONLY on that text, not outside knowledge.",
       },
+      ...(databaseContext
+        ? [
+            {
+              role: "system" as const,
+              content: `Content from the database:\n\n${databaseContext}`,
+            },
+          ]
+        : []),
       ...(context
         ? [
             {
               role: "system" as const,
-              content: `Context from the textbook or notes:\n\n${context}`,
+              content: `Additional context from the textbook or notes:\n\n${context}`,
             },
           ]
         : []),
@@ -50,7 +97,7 @@ export async function POST(req: NextRequest) {
       })),
     ]
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
@@ -58,12 +105,11 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
-        messages: payloadMessages,
+        input: payloadMessages,
         temperature: 1.2,
         top_p: 0.95,
         frequency_penalty: 0.5,
         presence_penalty: 0.5,
-        max_tokens: 512,
       }),
     })
 
@@ -81,7 +127,7 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json()
     let content =
-      data?.choices?.[0]?.message?.content ??
+      data?.output?.[0]?.content ??
       "I'm sorry, I couldn't generate a response. Please try asking again."
 
     // Check if the request was for questions, key points, or summarize
