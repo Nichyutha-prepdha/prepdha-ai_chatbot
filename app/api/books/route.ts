@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server"
-import { getAllBooks, getTopicsByBook, getPagesByTopic } from "@/lib/db"
+import { getAllBooks, getChaptersByBook, getTopicsByChapter, getPagesByTopic } from "@/lib/db"
 
 export async function GET() {
   try {
@@ -17,19 +17,23 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { bookId, topicId } = body
+    const { bookId, chapterId, topicId } = body
 
     if (topicId) {
       // Get pages for a specific topic
       const pages = await getPagesByTopic(topicId)
       return NextResponse.json({ pages })
-    } else if (bookId) {
-      // Get topics for a specific book
-      const topics = await getTopicsByBook(bookId)
+    } else if (chapterId) {
+      // Get topics for a specific chapter
+      const topics = await getTopicsByChapter(chapterId)
       return NextResponse.json({ topics })
+    } else if (bookId) {
+      // Get chapters for a specific book
+      const chapters = await getChaptersByBook(bookId)
+      return NextResponse.json({ chapters })
     } else {
       return NextResponse.json(
-        { error: 'Either bookId or topicId is required' },
+        { error: 'Either bookId, chapterId, or topicId is required' },
         { status: 400 }
       )
     }

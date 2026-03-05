@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "../app/generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
 
 const globalForChapterPrisma = globalThis as unknown as {
   chapterPrisma?: PrismaClient | undefined
@@ -12,11 +13,9 @@ function createChapterPrismaClient(): PrismaClient {
   }
 
   return new PrismaClient({
-    datasources: {
-      db: {
-        url: databaseUrl,
-      },
-    },
+    adapter: new PrismaPg({
+      connectionString: databaseUrl,
+    }),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   })
 }

@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { Header } from "@/components/header"
-import { SubHeader } from "@/components/sub-header"
-import { ContentReader } from "@/components/content-reader"
+// import { Header } from "@/components/header"
+// import { SubHeader } from "@/components/sub-header"
+// import { ContentReader } from "@/components/content-reader"
 import { RightPanel } from "@/components/right-panel"
 import DatabaseTest from "@/components/DatabaseTest"
 import {
@@ -17,7 +17,6 @@ export default function PrepdhaPage() {
   const [contextReference, setContextReference] = useState<string | null>(null)
   const [chapterContext, setChapterContext] = useState<string | null>(null)
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null)
-  const [showDatabaseTest, setShowDatabaseTest] = useState(false)
 
   const handleMarkComplete = useCallback(() => {
     setProgress(100)
@@ -34,15 +33,13 @@ export default function PrepdhaPage() {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Top Header */}
-      <Header />
+      {/* <Header /> */}
 
       {/* Sub Header */}
-      <SubHeader 
+      {/* <SubHeader 
         progress={progress} 
         onMarkComplete={handleMarkComplete}
-        onToggleDatabaseTest={() => setShowDatabaseTest(!showDatabaseTest)}
-        showDatabaseTest={showDatabaseTest}
-      />
+      /> */}
 
       {/* Main Content Area - resizable */}
       <ResizablePanelGroup
@@ -50,15 +47,7 @@ export default function PrepdhaPage() {
         className="flex-1 min-h-0"
       >
         <ResizablePanel defaultSize={70} minSize={40} order={1}>
-          {showDatabaseTest ? (
-            <DatabaseTest />
-          ) : (
-            <ContentReader
-              onAskAI={handleAskAI}
-              onChapterContextChange={setChapterContext}
-              onChapterChange={setCurrentChapterId}
-            />
-          )}
+          <DatabaseTest />
         </ResizablePanel>
         <ResizableHandle withHandle className="bg-border cursor-col-resize hover:bg-[#7c3aed]/20 transition-colors" />
         <ResizablePanel defaultSize={30} minSize={20} maxSize={50} order={2}>

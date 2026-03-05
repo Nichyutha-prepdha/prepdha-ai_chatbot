@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     // Build where clause
     const whereClause: any = {
-      schoolId: parseInt(schoolId),
+      school_id: parseInt(schoolId),
       OR: [
         { title: { contains: `chat:u${userId}:` } },
         { title: { contains: "chat:" } },
@@ -35,17 +35,13 @@ export async function GET(req: NextRequest) {
 
     const conversations = await (prisma as any).document.findMany({
       where: whereClause,
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updated_at: "desc" },
       take: 50,
       select: {
         id: true,
         title: true,
-        grade: true,
-        subject: true,
-        chapter: true,
-        createdAt: true,
-        updatedAt: true,
-        content: true,
+        created_at: true,
+        updated_at: true,
       },
     })
 
@@ -54,28 +50,16 @@ export async function GET(req: NextRequest) {
     // Transform to match expected format
     const formatted = conversations.map((doc: any) => {
       const titlePrefixRegex = /^chat:(?:u\d+:)?/i
-      let messages = []
-      try {
-        // Handle JSON content from PostgreSQL
-        if (doc.content && typeof doc.content === 'object') {
-          messages = doc.content.messages || []
-        } else if (doc.content && typeof doc.content === 'string') {
-          const parsed = JSON.parse(doc.content)
-          messages = parsed.messages || []
-        }
-      } catch (e) {
-        console.error('Error parsing content:', e)
-        messages = []
-      }
+      const messages: any[] = []
       
       return {
         id: doc.id,
         title: doc.title.replace(titlePrefixRegex, ""),
-        chapterId: doc.chapter,
-        grade: doc.grade,
-        subject: doc.subject,
-        createdAt: doc.createdAt,
-        updatedAt: doc.updatedAt,
+        chapterId: null, // Document model doesn't have chapter field
+        grade: null, // Document model doesn't have grade field
+        subject: null, // Document model doesn't have subject field
+        createdAt: doc.created_at,
+        updatedAt: doc.updated_at,
         messages: messages
       }
     })
@@ -125,21 +109,14 @@ export async function POST(req: NextRequest) {
 
     const conversation = await (prisma as any).document.create({
       data: {
-        schoolId: parseInt(schoolId),
+        school_id: parseInt(schoolId),
         title: `chat:u${userId}:${title || "New Chat"}`,
-        grade: grade ? String(grade) : null,
-        subject: subject || null,
-        chapter: chapter || null,
-        content: { messages: [] },
       },
       select: {
         id: true,
         title: true,
-        grade: true,
-        subject: true,
-        chapter: true,
-        createdAt: true,
-        updatedAt: true,
+        created_at: true,
+        updated_at: true,
       },
     })
 
@@ -148,11 +125,11 @@ export async function POST(req: NextRequest) {
     const formatted = {
       id: conversation.id,
       title: conversation.title?.replace(titlePrefixRegex, "") || "New Chat",
-      chapterId: conversation.chapter,
-      grade: conversation.grade,
-      subject: conversation.subject,
-      createdAt: conversation.createdAt,
-      updatedAt: conversation.updatedAt,
+      chapterId: null,
+      grade: null,
+      subject: null,
+      createdAt: conversation.created_at,
+      updatedAt: conversation.updated_at,
       messages: []
     }
 

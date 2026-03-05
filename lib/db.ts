@@ -54,8 +54,7 @@ export async function saveConversation(userId: number, schoolId: number, title: 
     const conversation = await prisma.document.create({
       data: {
         title,
-        content,
-        schoolId,
+        school_id: schoolId,
       }
     })
     return conversation
@@ -69,13 +68,12 @@ export async function saveConversation(userId: number, schoolId: number, title: 
 export async function getConversations(userId: number, schoolId: number, chapterId?: string) {
   try {
     const where = {
-      schoolId,
-      ...(chapterId && { chapter: chapterId })
+      school_id: schoolId,
     }
     
     const conversations = await prisma.document.findMany({
       where,
-      orderBy: { updatedAt: 'desc' }
+      orderBy: { updated_at: 'desc' }
     })
     return conversations
   } catch (error) {
@@ -97,17 +95,17 @@ export async function getAllBooks() {
   }
 }
 
-// Get topics by book
-export async function getTopicsByBook(bookId: number) {
+// Get chapters by book
+export async function getChaptersByBook(bookId: number) {
   try {
-    const topics = await chapterPrisma.$queryRaw`
-      SELECT * FROM "Topic" 
+    const chapters = await chapterPrisma.$queryRaw`
+      SELECT * FROM "Chapter" 
       WHERE book_id = ${bookId}
-      ORDER BY title
+      ORDER BY order_no ASC, title ASC
     `
-    return topics
+    return chapters
   } catch (error) {
-    console.error('Error fetching topics:', error)
+    console.error('Error fetching chapters:', error)
     return []
   }
 }
@@ -116,13 +114,28 @@ export async function getTopicsByBook(bookId: number) {
 export async function getPagesByTopic(topicId: number) {
   try {
     const pages = await chapterPrisma.$queryRaw`
-      SELECT * FROM "Page" 
+      SELECT id, topic_id, page_order, content_json, content_html, content_text, is_published, created_at, updated_at FROM "Page" 
       WHERE topic_id = ${topicId}
       ORDER BY page_order ASC
     `
     return pages
   } catch (error) {
     console.error('Error fetching pages:', error)
+    return []
+  }
+}
+
+// Get topics by chapter
+export async function getTopicsByChapter(chapterId: number) {
+  try {
+    const topics = await chapterPrisma.$queryRaw`
+      SELECT * FROM "Topic" 
+      WHERE chapter_id = ${chapterId}
+      ORDER BY order_no ASC, title ASC
+    `
+    return topics
+  } catch (error) {
+    console.error('Error fetching topics:', error)
     return []
   }
 }
