@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
     const whereClause: any = {
       schoolId: parseInt(schoolId),
       OR: [
-        { title: { contains: `chat:u${userId}:`, mode: "insensitive" } },
-        { title: { contains: "chat:", mode: "insensitive" } },
+        { title: { contains: `chat:u${userId}:` } },
+        { title: { contains: "chat:" } },
       ],
     }
 

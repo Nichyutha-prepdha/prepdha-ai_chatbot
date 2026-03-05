@@ -126,9 +126,10 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json()
-    let content =
-      data?.output?.[0]?.content ??
-      "I'm sorry, I couldn't generate a response. Please try asking again."
+    let content = extractResponseText(data)
+    if (!content) {
+      content = "I'm sorry, I couldn't generate a response. Please try asking again."
+    }
 
     // Check if the request was for questions, key points, or summarize
     const lastMessage = trimmedMessages[trimmedMessages.length - 1]?.content || ""
@@ -168,6 +169,39 @@ function removeNumbering(content: string): string {
   // Remove numbering like "1. " at the start of lines, keeping just the text
   content = content.replace(/^\d+\.\s+/gm, "")
   return content.trim()
+}
+
+function extractResponseText(data: any): string {
+  // OpenAI Responses API typically returns:
+  // { output: [ { content: [ { type: 'output_text', text: '...' }, ... ] }, ... ] }
+  // But we defensively handle other shapes too.
+  try {
+    const output = data?.output
+    if (!Array.isArray(output) || output.length === 0) return ""
+
+    const texts: string[] = []
+    for (const item of output) {
+      const contentArr = item?.content
+      if (Array.isArray(contentArr)) {
+        for (const part of contentArr) {
+          if (typeof part?.text === "string") {
+            texts.push(part.text)
+          } else if (typeof part?.content === "string") {
+            texts.push(part.content)
+          }
+        }
+      } else if (typeof item?.content === "string") {
+        texts.push(item.content)
+      }
+    }
+
+    if (texts.length > 0) return texts.join("\n").trim()
+    if (typeof data?.output_text === "string") return data.output_text.trim()
+    return ""
+  } catch (e) {
+    console.error("Failed to parse OpenAI response:", e)
+    return ""
+  }
 }
 
 function formatQuestions(content: string): string {
