@@ -1,0 +1,7 @@
+[TOPIC_ID: topic_001] [PAGE_ID: page_001] [TOPIC_NAME: Alexander Hamilton] Alexander Hamilton was the first Treasury Secretary of the United States.
+
+[TOPIC_ID: topic_001] [PAGE_ID: page_002] [TOPIC_NAME: Alexander Hamilton] He was appointed by President George Washington in 1789.
+
+[TOPIC_ID: topic_001] [PAGE_ID: page_003] [TOPIC_NAME: Alexander Hamilton] Hamilton helped establish the national banking system.
+
+[TOPIC_ID: topic_001] [PAGE_ID: page_004] [TOPIC_NAME: Alexander Hamilton] He played an important role in shaping the financial foundation of the United States.
