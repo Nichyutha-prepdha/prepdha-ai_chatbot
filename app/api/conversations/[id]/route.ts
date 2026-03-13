@@ -3,26 +3,23 @@ import { prisma } from "@/lib/prisma"
 
 export async function DELETE(
   req: NextRequest,
-  _ctx: { params: Promise<{ id: string }> } | { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Extract conversation ID from URL
-    const pathname = req.nextUrl?.pathname || ""
-    const match = pathname.match(/\/api\/conversations\/([^/]+)(?:\/messages)?$/i)
-    const conversationId = match?.[1]
-
-    if (!conversationId) {
-      return NextResponse.json(
-        { error: "Conversation ID is required" },
-        { status: 400 }
-      )
-    }
-
-    console.log("Deleting conversation:", conversationId)
+    const { id } = await params;
+    
+    console.log("Deleting conversation:", id)
 
     // Delete the conversation from database
     const deleted = await (prisma as any).document.delete({
-      where: { id: conversationId },
+      where: { id: id },
+    }).catch((error: any) => {
+      // Handle case where record doesn't exist
+      if (error.code === 'P2025') {
+        console.log("Conversation already deleted or not found:", id)
+        return null
+      }
+      throw error
     })
 
     console.log("Deleted conversation:", deleted)

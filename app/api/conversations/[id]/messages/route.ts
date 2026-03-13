@@ -38,7 +38,6 @@ export async function GET(
       )
     }
 
-    console.log("Loading messages for conversation:", documentId)
 
     const document = (await (prisma as any).document.findUnique({
       where: { id: documentId },
@@ -62,13 +61,8 @@ export async function GET(
         messages = parsed.messages || []
       }
     } catch (e) {
-      console.error('Error parsing content:', e)
       messages = []
     }
-    
-    console.log("Messages found in database:", messages)
-    console.log("Number of messages:", messages.length)
-    
     return NextResponse.json(messages)
   } catch (error) {
     console.error("Failed to load messages:", error)
@@ -95,7 +89,6 @@ export async function POST(
     const body = await req.json().catch(() => ({} as any))
     const { role, content, chapterId } = body
 
-    console.log("Saving message:", { documentId, role, content, chapterId })
 
     if (!role || !content) {
       return NextResponse.json(
@@ -160,7 +153,6 @@ export async function POST(
         const baseTitle = document.title?.replace(titlePrefixRegex, "") || ""
         
         updatedTitle = `chat:u1:${combinedTitle}`
-        console.log("Updated conversation title:", updatedTitle)
       }
     }
 
@@ -185,7 +177,6 @@ export async function POST(
       data: updateData,
     })
 
-    console.log("Message saved successfully to database")
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -288,20 +288,26 @@ export function RightPanel({
         setActiveThreadId(chapterConversation.id)
         setShowSummary(false)
         // Update the mapping
-        setActiveThreadByChapter(prev => ({
-          ...prev,
-          [currentChapterId]: chapterConversation.id,
-        }))
+        setActiveThreadByChapter(prev => {
+          if (prev[currentChapterId] === chapterConversation.id) return prev
+          return {
+            ...prev,
+            [currentChapterId]: chapterConversation.id,
+          }
+        })
         console.log("Selected first chapter conversation:", chapterConversation.id)
       } else {
         // If no chapter conversation, select the first available thread
         if (threads.length > 0) {
           setActiveThreadId(threads[0].id)
           setShowSummary(false)
-          setActiveThreadByChapter(prev => ({
-            ...prev,
-            [currentChapterId]: threads[0].id,
-          }))
+          setActiveThreadByChapter(prev => {
+            if (prev[currentChapterId] === threads[0].id) return prev
+            return {
+              ...prev,
+              [currentChapterId]: threads[0].id,
+            }
+          })
           console.log("Selected first available thread:", threads[0].id)
         } else {
           setActiveThreadId(null)
@@ -489,6 +495,7 @@ export function RightPanel({
               content: m.content,
             })),
             context: reference || chapterFallback || null,
+            chapterId: currentChapterId || null,
           }),
         })
 
@@ -553,67 +560,32 @@ export function RightPanel({
           finalContent = aiContent
         }
 
-        let index = 0
-        const step = Math.max(2, Math.floor(finalContent.length / 80))
+        // Replace placeholder with final AI message in a single update to avoid
+        // excessive nested render/update loops during streaming.
+        const aiMsg: Message = {
+          id: `ai-${Date.now()}`,
+          role: "assistant",
+          content: finalContent,
+          time: new Date().toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true
+          }),
+        }
 
-        const interval = setInterval(() => {
-          index += step
-          const nextText =
-            index >= finalContent.length
-              ? finalContent
-              : finalContent.slice(0, index)
-
-          setThreads((prev) =>
-            prev.map((t) =>
-              t.id === threadId
-                ? {
-                    ...t,
-                    messages: t.messages.map((m) =>
-                      m.id === placeholderId ? { ...m, content: nextText } : m
-                    ),
-                  }
-                : t
-            )
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === threadId
+              ? { ...t, messages: [...t.messages.filter((m) => m.id !== placeholderId), aiMsg] }
+              : t
           )
+        )
 
-          if (index >= finalContent.length) {
-            clearInterval(interval)
-            
-            // Add the AI message to UI state
-            const aiMsg: Message = {
-              id: `ai-${Date.now()}`,
-              role: "assistant",
-              content: finalContent,
-              time: new Date().toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true
-              }),
-            }
-            
-            console.log("Adding AI message to UI:", aiMsg)
-            
-            setThreads((prev) => {
-              console.log("Updating threads with AI response...")
-              const updated = prev.map((t) =>
-                t.id === threadId
-                  ? { ...t, messages: [...t.messages.filter(m => m.id !== placeholderId), aiMsg] }
-                  : t
-              )
-              console.log("Updated threads after AI:", updated.map(t => ({ id: t.id, messageCount: t.messages.length })))
-              return updated
-            })
-            
-            // Save AI response to database (user message is saved in handleSendMessage)
-            saveMessage(threadId, 'assistant', finalContent, currentChapterId || undefined)
-            
-            // Refresh conversation list to get updated title
-            refreshConversationsList()
-          }
-        }, 20)
+        // Save AI response to database (user message is saved in handleSendMessage)
+        saveMessage(threadId, 'assistant', finalContent, currentChapterId || undefined)
 
-        // Store interval ID for cleanup
-        return () => clearInterval(interval)
+        // Refresh conversation list to get updated title
+        refreshConversationsList()
       } catch (err) {
         console.error(err)
         setError(

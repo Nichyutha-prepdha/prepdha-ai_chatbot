@@ -8,8 +8,7 @@ export async function GET(req: NextRequest) {
     const schoolId = searchParams.get("schoolId")
     const chapterId = searchParams.get("chapterId")
 
-    console.log("GET conversations:", { userId, schoolId, chapterId })
-
+    
     if (!userId || !schoolId) {
       return NextResponse.json(
         { error: "userId and schoolId are required" },
@@ -31,8 +30,7 @@ export async function GET(req: NextRequest) {
       whereClause.chapter = chapterId
     }
 
-    console.log("Where clause:", whereClause)
-
+    
     const conversations = await (prisma as any).document.findMany({
       where: whereClause,
       orderBy: { updatedAt: "desc" },
@@ -49,8 +47,6 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    console.log("Found conversations in DB:", conversations)
-
     // Transform to match expected format
     const formatted = conversations.map((doc: any) => {
       const titlePrefixRegex = /^chat:(?:u\d+:)?/i
@@ -64,7 +60,6 @@ export async function GET(req: NextRequest) {
           messages = parsed.messages || []
         }
       } catch (e) {
-        console.error('Error parsing content:', e)
         messages = []
       }
       
@@ -79,8 +74,6 @@ export async function GET(req: NextRequest) {
         messages: messages
       }
     })
-
-    console.log("Formatted conversations:", formatted)
 
     return NextResponse.json(formatted)
   } catch (error) {
@@ -113,14 +106,24 @@ export async function POST(req: NextRequest) {
 
     if (!school) {
       // Create school if it doesn't exist
-      await (prisma as any).school.upsert({
-        where: { id: parseInt(schoolId) },
-        update: {},
-        create: {
-          id: parseInt(schoolId),
-          name: `School ${schoolId}`,
-        },
-      })
+      try {
+        school = await (prisma as any).school.create({
+          data: {
+            id: parseInt(schoolId),
+            name: `School ${schoolId}`,
+            keyword: `school-${schoolId}`, // Unique keyword
+          },
+        })
+      } catch (createError) {
+        console.error("Error creating school:", createError)
+        // If creation fails due to unique constraint, try to find again
+        school = await (prisma as any).school.findUnique({
+          where: { id: parseInt(schoolId) },
+        })
+        if (!school) {
+          throw new Error("Failed to create or find school")
+        }
+      }
     }
 
     const conversation = await (prisma as any).document.create({
